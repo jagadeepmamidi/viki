@@ -10,6 +10,13 @@ SYMPTOM_CHOICES = [
     'Shortness of breath', 'Headache', 'Runny nose'
 ]
 
+# Feature order from training!
+feature_order = [
+    'Patient_ID', 'Age', 'Gender', 'Symptom_1', 'Symptom_2', 'Symptom_3',
+    'Heart_Rate_bpm', 'Body_Temperature_C', 'Blood_Pressure_mmHg', 'Oxygen_Saturation_%',
+    'Severity', 'Treatment_Plan', 'Respiratory_Symptom'
+]
+
 st.title('Disease Diagnosis Predictor')
 
 st.sidebar.header("Patient Data")
@@ -25,29 +32,32 @@ symptom3 = st.sidebar.selectbox('Symptom 3', SYMPTOM_CHOICES)
 severity = st.sidebar.selectbox('Severity', ['Mild', 'Moderate', 'Severe'])
 treatment_plan = st.sidebar.selectbox('Treatment Plan', ['Rest and fluids', 'Medication and rest', 'Hospitalization and medication'])
 
-# Use EXACT feature names from training with underscores
+# Input dictionary (values only) - names must match and order must match feature_order above
 input_dict = {
-    'Patient_ID': 1,  # or any default integer (unless used in model meaningfully)
+    'Patient_ID': 1,  # Dummy, if not used meaningfully
     'Age': age,
     'Gender': 1 if gender == 'Male' else 0,
+    'Symptom_1': SYMPTOM_CHOICES.index(symptom1),
+    'Symptom_2': SYMPTOM_CHOICES.index(symptom2),
+    'Symptom_3': SYMPTOM_CHOICES.index(symptom3),
     'Heart_Rate_bpm': heart_rate,
     'Body_Temperature_C': body_temp,
     'Blood_Pressure_mmHg': blood_pressure,
     'Oxygen_Saturation_%': oxygen,
-    'Symptom_1': SYMPTOM_CHOICES.index(symptom1),
-    'Symptom_2': SYMPTOM_CHOICES.index(symptom2),
-    'Symptom_3': SYMPTOM_CHOICES.index(symptom3),
     'Severity': {'Mild':0, 'Moderate':1, 'Severe':2}[severity],
     'Treatment_Plan': {'Rest and fluids':0, 'Medication and rest':1, 'Hospitalization and medication':2}[treatment_plan],
     'Respiratory_Symptom': int('shortness of breath' in [symptom1, symptom2, symptom3] or 'cough' in [symptom1, symptom2, symptom3])
 }
-input_df = pd.DataFrame([input_dict])
+
+# Build DataFrame in training order
+input_df = pd.DataFrame([[input_dict[f] for f in feature_order]], columns=feature_order)
 
 if st.button('Predict Diagnosis'):
     pred = model.predict(input_df)[0]
     st.success(f"Predicted Diagnosis: {pred}")
 
 st.write("""
-**Important:**  
-All feature names and categorical encodings MUST match those used during training, with underscores and exact casing as per your model!
+**Critical:**  
+The feature names **AND order** are guaranteed to match your trained model.  
+If you change the model, always update both this dictionary and feature_order.
 """)
