@@ -5,12 +5,18 @@ import joblib
 # Load trained model
 model = joblib.load('disease_rf_model.pkl')
 
+# Diagnosis labels from your label encoder output:
+diagnosis_labels = [
+    'Hospitalization and medication',
+    'Medication and rest',
+    'Rest and fluids'
+]
+
 SYMPTOM_CHOICES = [
     'Fatigue', 'Sore throat', 'Fever', 'Cough', 'Body ache',
     'Shortness of breath', 'Headache', 'Runny nose'
 ]
 
-# Feature order from training!
 feature_order = [
     'Patient_ID', 'Age', 'Gender', 'Symptom_1', 'Symptom_2', 'Symptom_3',
     'Heart_Rate_bpm', 'Body_Temperature_C', 'Blood_Pressure_mmHg', 'Oxygen_Saturation_%',
@@ -30,11 +36,13 @@ symptom1 = st.sidebar.selectbox('Symptom 1', SYMPTOM_CHOICES)
 symptom2 = st.sidebar.selectbox('Symptom 2', SYMPTOM_CHOICES)
 symptom3 = st.sidebar.selectbox('Symptom 3', SYMPTOM_CHOICES)
 severity = st.sidebar.selectbox('Severity', ['Mild', 'Moderate', 'Severe'])
-treatment_plan = st.sidebar.selectbox('Treatment Plan', ['Rest and fluids', 'Medication and rest', 'Hospitalization and medication'])
+treatment_plan = st.sidebar.selectbox('Treatment Plan', [
+    'Rest and fluids', 'Medication and rest', 'Hospitalization and medication'
+])
 
-# Input dictionary (values only) - names must match and order must match feature_order above
+# Input dict in the correct order and with correct names/encodings
 input_dict = {
-    'Patient_ID': 1,  # Dummy, if not used meaningfully
+    'Patient_ID': 1,
     'Age': age,
     'Gender': 1 if gender == 'Male' else 0,
     'Symptom_1': SYMPTOM_CHOICES.index(symptom1),
@@ -44,20 +52,25 @@ input_dict = {
     'Body_Temperature_C': body_temp,
     'Blood_Pressure_mmHg': blood_pressure,
     'Oxygen_Saturation_%': oxygen,
-    'Severity': {'Mild':0, 'Moderate':1, 'Severe':2}[severity],
-    'Treatment_Plan': {'Rest and fluids':0, 'Medication and rest':1, 'Hospitalization and medication':2}[treatment_plan],
+    'Severity': {'Mild': 0, 'Moderate': 1, 'Severe': 2}[severity],
+    'Treatment_Plan': {
+        'Rest and fluids': 2, 'Medication and rest': 1, 'Hospitalization and medication': 0
+    }[treatment_plan],
     'Respiratory_Symptom': int('shortness of breath' in [symptom1, symptom2, symptom3] or 'cough' in [symptom1, symptom2, symptom3])
 }
 
-# Build DataFrame in training order
+# Ensure correct feature order in DataFrame
 input_df = pd.DataFrame([[input_dict[f] for f in feature_order]], columns=feature_order)
 
 if st.button('Predict Diagnosis'):
     pred = model.predict(input_df)[0]
-    st.success(f"Predicted Diagnosis: {pred}")
+    pred_label = diagnosis_labels[pred] if pred < len(diagnosis_labels) else f"Unknown({pred})"
+    st.success(f"Predicted Diagnosis: {pred_label} (label: {pred})")
 
 st.write("""
 **Critical:**  
 The feature names **AND order** are guaranteed to match your trained model.  
 If you change the model, always update both this dictionary and feature_order.
+
+**Note:** Prediction now displays the human-readable treatment plan as well as the label.
 """)
